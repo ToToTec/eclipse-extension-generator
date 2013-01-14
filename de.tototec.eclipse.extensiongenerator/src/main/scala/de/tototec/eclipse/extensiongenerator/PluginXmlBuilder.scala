@@ -1,19 +1,32 @@
 package de.tototec.eclipse.extensiongenerator
 
+import java.io.BufferedInputStream
+import java.io.DataInputStream
 import java.io.File
-import com.impetus.annovention.Discoverer
-import com.impetus.annovention.Filter
-import com.impetus.annovention.listener.ClassAnnotationDiscoveryListener
+import java.io.FileInputStream
+
+import scala.Array.canBuildFrom
+import scala.util.matching.Regex
+
 import de.tototec.eclipse.extensiongenerator.annotation.Application
-import java.net.URLClassLoader
+import de.tototec.eclipse.extensiongenerator.annotation.Cardinality
 import de.tototec.eclipse.extensiongenerator.annotation.Perspective
-import de.tototec.eclipse.extensiongenerator.annotation.Cardinality
-import de.tototec.eclipse.extensiongenerator.annotation.Cardinality
+import de.tototec.eclipse.extensiongenerator.annotation.Thread
 import de.tototec.eclipse.extensiongenerator.annotation.View
+import javassist.bytecode.AnnotationsAttribute
+import javassist.bytecode.ClassFile
+import javassist.bytecode.annotation.Annotation
+import javassist.bytecode.annotation.AnnotationMemberValue
+import javassist.bytecode.annotation.ArrayMemberValue
+import javassist.bytecode.annotation.BooleanMemberValue
+import javassist.bytecode.annotation.DoubleMemberValue
+import javassist.bytecode.annotation.EnumMemberValue
+import javassist.bytecode.annotation.MemberValue
+import javassist.bytecode.annotation.StringMemberValue
 
 class PluginXmlBuilder(
-  scanPackages: Seq[String] = Seq(),
-  classpath: Seq[File] = Seq(),
+  scanDirs: Seq[File] = Seq(),
+  //  scanPackages: Seq[String] = null,
   debug: Boolean = false) {
 
   /** Logger, which you might want overload. */
@@ -28,69 +41,104 @@ class PluginXmlBuilder(
    */
   def build: String = {
 
-    val discoverer = new Discoverer() {
+    def recursiveListFiles(dir: File, regex: Regex): Array[File] = {
+      dir.listFiles match {
+        case allFiles: Array[File] =>
+          allFiles.filter(f => f.isFile && regex.findFirstIn(f.getName).isDefined) ++
+            allFiles.filter(_.isDirectory).flatMap(recursiveListFiles(_, regex))
+        case null => Array()
+      }
+    }
 
-      override def findResources: Array[java.net.URL] = classpath.map(file => file.toURI.toURL).toArray
+    val classFiles = scanDirs.flatMap { path => recursiveListFiles(path, """.*\.class""".r) }
 
-      override def getFilter: Filter = new Filter() {
-        override def accepts(fileName: String): Boolean = fileName.endsWith(".class")
+    var apps: Map[String, Annotation] = Map()
+    var perspectives: Map[String, Annotation] = Map()
+    var views: Map[String, Annotation] = Map()
+
+    classFiles.foreach { file =>
+      val is = new DataInputStream(new BufferedInputStream(new FileInputStream(file)))
+      try {
+        val classFile = new ClassFile(is)
+        var annoAttr = classFile.getAttribute(AnnotationsAttribute.invisibleTag).asInstanceOf[AnnotationsAttribute]
+        if (annoAttr == null) {
+          // This is needed because of the bug in the scala compiler: SI-4788
+          annoAttr = classFile.getAttribute(AnnotationsAttribute.visibleTag).asInstanceOf[AnnotationsAttribute]
+        }
+        if (annoAttr != null) {
+          // Annotations
+          val appAnno = annoAttr.getAnnotation(classOf[Application].getName)
+          if (appAnno != null) {
+            apps += (classFile.getName -> appAnno)
+          }
+          // Perspectives
+          val perspAnno = annoAttr.getAnnotation(classOf[Perspective].getName)
+          if (perspAnno != null) {
+            perspectives += (classFile.getName -> perspAnno)
+          }
+          // Views
+          val viewAnno = annoAttr.getAnnotation(classOf[View].getName)
+          if (viewAnno != null) {
+            views += (classFile.getName -> viewAnno)
+          }
+        }
+
+      } finally {
+        is.close
       }
 
     }
 
-    val classLoader = new URLClassLoader(classpath.map { file => file.toURI.toURL }.toArray, classOf[PluginXmlBuilder].getClassLoader)
-
-    var applications: Seq[(String, Application)] = Seq()
-    var perspectives: Seq[(String, Perspective)] = Seq()
-    var views: Seq[(String, View)] = Seq()
-
-    //    var annotations: Map[String, Any] = Map()
-
-    discoverer.addAnnotationListener(new ClassAnnotationDiscoveryListener() {
-      override def supportedAnnotations: Array[String] = Array(
-        classOf[Application],
-        classOf[Perspective],
-        classOf[View]
-      ).map(_.getName)
-      override def discovered(className: String, annotationName: String) {
-        if (scanPackages.find { pack => className.startsWith(pack + ".") }.isDefined) {
-          // when package matches
-          val clazz = classLoader.loadClass(className)
-          annotationName match {
-            case x if x == classOf[Application].getName =>
-              val anno = clazz.getAnnotation(classOf[Application])
-              log.debug(s"Detected annotation ${anno} in class ${className}")
-              applications ++= Seq(className -> anno)
-            case x if x == classOf[Perspective].getName =>
-              val anno = clazz.getAnnotation(classOf[Perspective])
-              log.debug(s"Detected annotation ${anno} in class ${className}")
-              perspectives ++= Seq(className -> anno)
-            case x if x == classOf[View].getName =>
-              val anno = clazz.getAnnotation(classOf[View])
-              log.debug(s"Detected annotation ${anno} in class ${className}")
-              views ++= Seq(className -> anno)
-          }
-        }
-      }
-    })
-
-    // discover visible classes
-    discoverer.discover(true, false, false, true, false)
-
-    val appXml = applications.map {
+    val appXml = apps.map {
       case (className, anno) =>
+        val id = anno.getMemberValue("id") match {
+          case value: StringMemberValue => value.getValue
+          case _ => className
+        }
+        val name = anno.getMemberValue("name") match {
+          case value: StringMemberValue => value.getValue
+          case _ => ""
+        }
+        val visible = anno.getMemberValue("visible") match {
+          case value: BooleanMemberValue => value.getValue
+          case _ => true
+        }
+        val thread = anno.getMemberValue("thread") match {
+          case value: EnumMemberValue => Thread.valueOf(value.getValue).title
+          case _ => Thread.MAIN.title
+        }
+        val cardinality = anno.getMemberValue("cardinality") match {
+          case x: EnumMemberValue => Cardinality.valueOf(x.getValue).title
+          case _ => Cardinality.SINGLETON_GLOBAL.title
+        }
+        val icon = anno.getMemberValue("icon") match {
+          case x: StringMemberValue => x.getValue
+          case _ => ""
+        }
+        val params = (anno.getMemberValue("parameters") match {
+          case x: ArrayMemberValue => x.getValue
+          case _ => Array[MemberValue]()
+        }).map {
+          case x: AnnotationMemberValue =>
+            val paramAnno = x.getValue
+            val paramName = paramAnno.getMemberValue("name").asInstanceOf[StringMemberValue].getValue
+            val paramValue = paramAnno.getMemberValue("value").asInstanceOf[StringMemberValue].getValue
+            (paramName -> paramValue)
+        }
+
         s"""|  <extension
             |      point="org.eclipse.core.runtime.applications"
-            |      id="${if (anno.id == "") className else anno.id}"
-            |      name="${anno.name}">
+            |      id="${id}"
+            |      name="${name}">
             |    <application
-            |        visible="${if (anno.visible) "true" else "false"}"
-            |        cardinality="${anno.cardinality.title}"
-            |        thread="${anno.thread.title}"
-            |        icon="${anno.icon}">
+            |        visible="${if (visible) "true" else "false"}"
+            |        cardinality="${cardinality}"
+            |        thread="${thread}"
+            |        icon="${icon}">
             |      <run class="${className}">
-            |""".stripMargin + anno.parameters.map { param =>
-          s"""        <parameter name="${param.name}" value="${param.value}"/>"""
+            |""".stripMargin + params.map {
+          case (name, value) =>
+            s"""        <parameter name="${name}" value="${value}"/>"""
         }.mkString("\n") +
           s"""|      </run>
               |    </application>
@@ -99,35 +147,90 @@ class PluginXmlBuilder(
 
     val perspectiveXml = perspectives.map {
       case (className, anno) =>
+        val id = anno.getMemberValue("id") match {
+          case value: StringMemberValue => value.getValue
+          case _ => className
+        }
+        val name = anno.getMemberValue("name") match {
+          case value: StringMemberValue => value.getValue
+          case _ => ""
+        }
+        val icon = anno.getMemberValue("icon") match {
+          case x: StringMemberValue => x.getValue
+          case _ => ""
+        }
+        val fixed = anno.getMemberValue("fixed") match {
+          case value: BooleanMemberValue => value.getValue
+          case _ => false
+        }
+
         s"""|  <extension
             |      point="org.eclipse.ui.perspectives">
             |    <perspective
-            |        id="${if (anno.id == "") className else anno.id}"
-            |        name="${anno.name}"
+            |        id="${id}"
+            |        name="${name}"
             |        class="${className}"
-            |        icon="${anno.icon}"
-            |        fixed="${anno.fixed}">
+            |        icon="${icon}"
+            |        fixed="${fixed}">
             |    </perspective>
             |  </extension>""".stripMargin
     }.mkString("\n")
 
     val viewXml = views.map {
       case (className, anno) =>
+        val id = anno.getMemberValue("id") match {
+          case value: StringMemberValue => value.getValue
+          case _ => className
+        }
+        val name = anno.getMemberValue("name") match {
+          case value: StringMemberValue => value.getValue
+          case _ => ""
+        }
+        val category = anno.getMemberValue("category") match {
+          case value: StringMemberValue => value.getValue
+          case _ => ""
+        }
+        val icon = anno.getMemberValue("icon") match {
+          case x: StringMemberValue => x.getValue
+          case _ => ""
+        }
+        val fastViewWidthRatio = anno.getMemberValue("fastViewWidthRatio") match {
+          case value: DoubleMemberValue => value.getValue
+          case _ => -1
+        }
+        val allowMultiple = anno.getMemberValue("allowMultiple") match {
+          case x: BooleanMemberValue => x.getValue
+          case _ => false
+        }
+        val restorable = anno.getMemberValue("restorable") match {
+          case x: BooleanMemberValue => x.getValue
+          case _ => true
+        }
+        val description = anno.getMemberValue("description") match {
+          case x: StringMemberValue => x.getValue
+          case _ => ""
+        }
+
         s"""|  <extension
             |      point="org.eclipse.ui.views">
-            |    <perspective
-            |        id="${if (anno.id == "") className else anno.id}"
-            |        name="${anno.name}"
+            |    <view
+            |        id="${id}"
+            |        name="${name}"
             |        class="${className}"
-            |        icon="${anno.icon}"
+            |        icon="${icon}"
             |        ${
-          if (anno.fastViewWidthRatio >= 0.05 && anno.fastViewWidthRatio <= 0.95)
-            s"""fastViewWidthRatio="${anno.fastViewWidthRatio}"""
+          if (fastViewWidthRatio >= 0.05 && fastViewWidthRatio <= 0.95)
+            s"""fastViewWidthRatio="${fastViewWidthRatio}"""
           else ""
         }
-            |        allowMultiple="${if (anno.allowMultiple) "true" else "false"}"
-            |        restorable="${if (anno.restorable) "true" else "false"}"
-            |    </perspective>
+            |        allowMultiple="${if (allowMultiple) "true" else "false"}"
+            |        restorable="${if (restorable) "true" else "false"}">
+            |        ${
+          if (description != "")
+            s"      <description><![CDATA[${fastViewWidthRatio}]]></description>"
+          else ""
+        }
+            |    </view>
             |  </extension>""".stripMargin
     }.mkString("\n")
 

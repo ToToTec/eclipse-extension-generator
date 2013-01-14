@@ -13,7 +13,6 @@ class SBuild(implicit project: Project) {
 
   val compileCp =
     s"mvn:org.scala-lang:scala-library:${scalaVersion}" ~
-    "mvn:tv.cntt:annovention:1.3" ~
     "mvn:org.javassist:javassist:3.16.1-GA"
 
   ExportDependencies("eclipse.classpath", compileCp)

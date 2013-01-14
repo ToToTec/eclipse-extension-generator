@@ -11,7 +11,7 @@ import java.lang.annotation.Target;
  * 
  */
 @Target(ElementType.TYPE)
-@Retention(RetentionPolicy.RUNTIME)
+@Retention(RetentionPolicy.CLASS)
 public @interface View {
 
 	/** Unique name to identify this view. Defaults to annotated class name. */
