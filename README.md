@@ -12,3 +12,13 @@ The Eclipse Extension Generator API is designed to be easily integrated into bui
 
 License: [Apache License Version 2.0](http://www.apache.org/licenses/LICENSE-2.0.html)
 
+Example: Scan all class files in "target/classes" and generate the content of the plugin.xml.
+
+```
+import de.tototec.eclipse.extensiongenerator._
+val pluginXml = new PluginXmlBuilder(scanDirs = Seq(Path("target/classes"))).build
+```
+
+Dependencies:
+* Scala 2.10
+* Javassist 3.16
