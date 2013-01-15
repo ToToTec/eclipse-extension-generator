@@ -7,8 +7,8 @@ import java.lang.annotation.Target;
 
 /**
  * Definition of an extension to extension point
- * org.eclipse.core.runtime.applications.
- * 
+ * org.eclipse.core.runtime.applications. The annotated class must implement
+ * org.eclipse.equinox.app.IApplication.
  */
 @Target(ElementType.TYPE)
 @Retention(RetentionPolicy.CLASS)
