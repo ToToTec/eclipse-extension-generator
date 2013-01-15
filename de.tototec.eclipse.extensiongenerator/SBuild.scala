@@ -64,17 +64,22 @@ class SBuild(implicit project: Project) {
     }
   }
 
+  val osgiProps = Map(
+    "Bundle-Version" -> version,
+    "Implementation-Version" -> version,
+    "Include-Resource" -> "../LICENSE.txt"
+  )
+
   Target(generatorJar) dependsOn "compile" ~ compileCp ~ bndCp exec { ctx: TargetContext =>
     addons.bnd.BndJar(
       destFile = ctx.targetFile.get,
       classpath = compileCp.files ++ Seq(Path("target/classes")),
       bndClasspath = bndCp.files,
-      props = Map(
+      props = osgiProps ++ Map(
         "Bundle-SymbolicName" -> namespace,
-        "Bundle-Version" -> version,
         "Export-Package" -> s"""${namespace};version="${version}"""",
-        "Import-Package" -> s"""scalaVersion;version="[${scalaVersion},2.11)",
-                                ${namespace}.annotation.*;version="${version}",
+        "Import-Package" -> s"""scala.*;version="[${scalaVersion},2.11),"
+                                ${namespace}.*;version="${version}",
                                 *""",
         "Scala-Version" -> scalaVersion
      )
@@ -86,9 +91,8 @@ class SBuild(implicit project: Project) {
       destFile = ctx.targetFile.get,
       classpath = compileCp.files ++ Seq(Path("target/classes")),
       bndClasspath = bndCp.files,
-      props = Map(
+      props = osgiProps ++ Map(
         "Bundle-SymbolicName" -> s"${namespace}.annotation",
-        "Bundle-Version" -> version,
         "Export-Package" -> s"""${namespace}.annotation;version="${version}"""",
         "Import-Package" -> "*"
      )
