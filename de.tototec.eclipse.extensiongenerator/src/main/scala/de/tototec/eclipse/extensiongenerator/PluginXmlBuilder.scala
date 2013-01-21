@@ -26,7 +26,6 @@ import javassist.bytecode.annotation.StringMemberValue
 
 class PluginXmlBuilder(
   scanDirs: Seq[File] = Seq(),
-  //  scanPackages: Seq[String] = null,
   debug: Boolean = false) {
 
   /** Logger, which you might want overload. */
@@ -60,27 +59,40 @@ class PluginXmlBuilder(
       val is = new DataInputStream(new BufferedInputStream(new FileInputStream(file)))
       try {
         val classFile = new ClassFile(is)
-        var annoAttr = classFile.getAttribute(AnnotationsAttribute.invisibleTag).asInstanceOf[AnnotationsAttribute]
-        if (annoAttr == null) {
-          // This is needed because of the bug in the scala compiler: SI-4788
-          annoAttr = classFile.getAttribute(AnnotationsAttribute.visibleTag).asInstanceOf[AnnotationsAttribute]
+
+        val invisibleAnnos =
+          Option(classFile.getAttribute(AnnotationsAttribute.invisibleTag).asInstanceOf[AnnotationsAttribute]).map {
+            _.getAnnotations()
+          }.getOrElse(Array())
+
+        // This is needed because of the bug in the scala compiler: SI-4788
+        val visibleAnnos =
+          Option(classFile.getAttribute(AnnotationsAttribute.visibleTag).asInstanceOf[AnnotationsAttribute]).map {
+            _.getAnnotations()
+          }.getOrElse(Array())
+
+        val annos = invisibleAnnos ++ visibleAnnos
+
+        // Applications
+        annos.find { anno =>
+          anno.getTypeName == classOf[Application].getName || 
+            anno.getTypeName == "de.tototec.eclipse.extensiongenerator.annotation.scala.Application"
+        }.map { appAnno =>
+          apps += (classFile.getName -> appAnno)
         }
-        if (annoAttr != null) {
-          // Annotations
-          val appAnno = annoAttr.getAnnotation(classOf[Application].getName)
-          if (appAnno != null) {
-            apps += (classFile.getName -> appAnno)
-          }
-          // Perspectives
-          val perspAnno = annoAttr.getAnnotation(classOf[Perspective].getName)
-          if (perspAnno != null) {
-            perspectives += (classFile.getName -> perspAnno)
-          }
-          // Views
-          val viewAnno = annoAttr.getAnnotation(classOf[View].getName)
-          if (viewAnno != null) {
-            views += (classFile.getName -> viewAnno)
-          }
+
+        // Perspectives
+        annos.find { anno =>
+          anno.getTypeName == classOf[Perspective].getName
+        }.map { pAnno =>
+          perspectives += (classFile.getName -> pAnno)
+        }
+
+        // Views
+        annos.find { anno =>
+          anno.getTypeName == classOf[View].getName
+        }.map { vAnno =>
+          views += (classFile.getName -> vAnno)
         }
 
       } finally {
