@@ -34,16 +34,15 @@ class PerspectiveAnnotationHandler extends AnnotationHandler {
       s"""${attrib}="${value}""""
     } else ""
 
-    s"""|  <extension
-            |      point="org.eclipse.ui.perspectives">
-            |    <perspective
-            |        id="${id}"
-            |        ${attribNotEmpty("name", name)}
-            |        class="${className}"
-            |        ${attribNotEmpty("icon", icon)}
-            |        fixed="${fixed}">
-            |    </perspective>
-            |  </extension>""".stripMargin
+    s"""|  <extension point="org.eclipse.ui.perspectives">
+        |    <perspective
+        |        id="${id}"
+        |        ${attribNotEmpty("name", name)}
+        |        class="${className}"
+        |        ${attribNotEmpty("icon", icon)}
+        |        fixed="${fixed}">
+        |    </perspective>
+        |  </extension>""".stripMargin
 
   }
 

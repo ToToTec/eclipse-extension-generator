@@ -51,27 +51,26 @@ class ViewAnnotationHandler extends AnnotationHandler {
       s"""${attrib}="${value}""""
     } else ""
 
-    s"""|  <extension
-            |      point="org.eclipse.ui.views">
-            |    <view
-            |        id="${id}"
-            |        ${attribNotEmpty("name", name)}
-            |        class="${className}"
-            |        ${attribNotEmpty("icon", icon)}
-            |        ${
+    s"""|  <extension point="org.eclipse.ui.views">
+        |    <view
+        |        id="${id}"
+        |        ${attribNotEmpty("name", name)}
+        |        class="${className}"
+        |        ${attribNotEmpty("icon", icon)}
+        |        ${
       if (fastViewWidthRatio >= 0.05 && fastViewWidthRatio <= 0.95)
         s"""fastViewWidthRatio="${fastViewWidthRatio}"""
       else ""
     }
-            |        allowMultiple="${if (allowMultiple) "true" else "false"}"
-            |        restorable="${if (restorable) "true" else "false"}">
-            |        ${
+        |        allowMultiple="${if (allowMultiple) "true" else "false"}"
+        |        restorable="${if (restorable) "true" else "false"}">
+        |        ${
       if (description != "")
         s"      <description><![CDATA[${fastViewWidthRatio}]]></description>"
       else ""
     }
-            |    </view>
-            |  </extension>""".stripMargin
+        |    </view>
+        |  </extension>""".stripMargin
   }
 
 }

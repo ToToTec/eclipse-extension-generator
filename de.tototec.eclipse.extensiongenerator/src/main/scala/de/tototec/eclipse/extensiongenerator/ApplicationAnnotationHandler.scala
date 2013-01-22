@@ -59,23 +59,23 @@ class ApplicationAnnotationHandler extends AnnotationHandler {
       s"""${attrib}="${value}""""
     } else ""
 
-    s"""|  <extension
-            |      point="org.eclipse.core.runtime.applications"
-            |      id="${id}"
-            |      ${attribNotEmpty("name", name)}>
-            |    <application
-            |        visible="${if (visible) "true" else "false"}"
-            |        cardinality="${cardinality}"
-            |        thread="${thread}"
-            |        ${attribNotEmpty("icon", icon)}>
-            |      <run class="${className}">
-            |""".stripMargin + params.map {
+    s"""|  <extension 
+        |      point="org.eclipse.core.runtime.applications"
+        |      id="${id}"
+        |      ${attribNotEmpty("name", name)}>
+        |    <application
+        |        visible="${if (visible) "true" else "false"}"
+        |        ${attribNotEmpty("icon", icon)}
+        |        cardinality="${cardinality}"
+        |        thread="${thread}">
+        |      <run class="${className}">
+        |""".stripMargin + params.map {
       case (name, value) =>
         s"""        <parameter name="${name}" value="${value}"/>"""
     }.mkString("\n") +
       s"""|      </run>
-              |    </application>
-              |  </extension>""".stripMargin
+          |    </application>
+          |  </extension>""".stripMargin
   }
 
 }

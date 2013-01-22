@@ -7,6 +7,7 @@ Supported Extensions:
 * `@Application` - Extension of `org.eclipse.core.runtime.applications`
 * `@Perspective` - Extension of `org.eclipse.ui.perspective`
 * `@View` - Extension of `org.eclipse.ui.views`
+* `@Editor` - Extension of `org.eclipse.ui.editors`
 
 The Eclipse Extension Generator API is designed to be easily integrated into build tools like [SBuild](http://sbuild.tototec.de).
 

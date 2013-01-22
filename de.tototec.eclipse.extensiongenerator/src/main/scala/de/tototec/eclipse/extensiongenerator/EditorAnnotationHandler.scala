@@ -1,17 +1,18 @@
 package de.tototec.eclipse.extensiongenerator
 
-import de.tototec.eclipse.extensiongenerator.annotation.View
+import scala.Array.canBuildFrom
+
+import de.tototec.eclipse.extensiongenerator.annotation.Editor
 import javassist.bytecode.ClassFile
 import javassist.bytecode.annotation.Annotation
-import javassist.bytecode.annotation.BooleanMemberValue
-import javassist.bytecode.annotation.DoubleMemberValue
-import javassist.bytecode.annotation.StringMemberValue
 import javassist.bytecode.annotation.ArrayMemberValue
+import javassist.bytecode.annotation.BooleanMemberValue
 import javassist.bytecode.annotation.MemberValue
+import javassist.bytecode.annotation.StringMemberValue
 
 class EditorAnnotationHandler extends AnnotationHandler {
 
-  override def annotationName = classOf[View].getName
+  override def annotationName = classOf[Editor].getName
 
   override def generateXmlFragement(classFile: ClassFile, anno: Annotation): String = {
     val className = classFile.getName
@@ -74,28 +75,27 @@ class EditorAnnotationHandler extends AnnotationHandler {
       s"""${attrib}="${value}""""
     } else ""
 
-    s"""|  <extension
-            |      point="org.eclipse.ui.editors">
-            |    <editor
-            |        id="${id}"
-            |        ${attribNotEmpty("name", name)}
-            |        ${attribNotEmpty("icon", icon)}
-            |        ${attribNotEmpty("extensions", extensions.mkString(","))}
-            |        ${attribNotEmpty("class", classAttr)}
-            |        ${attribNotEmpty("contributorClass", contributorClass)}
-            |        ${attribNotEmpty("launcher", launcherAttr)}
-            |        ${attribNotEmpty("filenames", fileNames.mkString(","))}
-            |        ${attribNotEmpty("symbolicFontName", symbolicFontName)}
-            |        ${attribNotEmpty("matchingStrategy", matchingStrategy)}
-            |        default="${if (isDefault) "true" else "false"}">
-            |${
+    s"""|  <extension point="org.eclipse.ui.editors">
+        |    <editor
+        |        id="${id}"
+        |        ${attribNotEmpty("name", name)}
+        |        ${attribNotEmpty("icon", icon)}
+        |        ${attribNotEmpty("extensions", extensions.mkString(","))}
+        |        ${attribNotEmpty("class", classAttr)}
+        |        ${attribNotEmpty("contributorClass", contributorClass)}
+        |        ${attribNotEmpty("launcher", launcherAttr)}
+        |        ${attribNotEmpty("filenames", fileNames.mkString(","))}
+        |        ${attribNotEmpty("symbolicFontName", symbolicFontName)}
+        |        ${attribNotEmpty("matchingStrategy", matchingStrategy)}
+        |        default="${if (isDefault) "true" else "false"}">
+        |${
       if (!contentTypeBindings.isEmpty) contentTypeBindings.map { bindingId =>
         s"""      <contentTypeBindings contentTypeId="${bindingId}"/>"""
       }.mkString("\n")
       else ""
     }
-            |    </editor>
-            |  </extension>""".stripMargin
+        |    </editor>
+        |  </extension>""".stripMargin
   }
 
 }

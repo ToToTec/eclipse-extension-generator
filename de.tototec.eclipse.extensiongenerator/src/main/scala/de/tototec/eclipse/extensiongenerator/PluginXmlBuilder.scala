@@ -78,7 +78,10 @@ class PluginXmlBuilder(
 
     }
 
-    val xmlFragments = handleAnnoRequest.map {
+    val sortedRequest =
+      handleAnnoRequest.sortBy { case (handler, classFile, _) => handler.annotationName + "_" + classFile.getName }
+
+    val xmlFragments = sortedRequest.map {
       case (handler, classFile, anno) => handler.generateXmlFragement(classFile, anno)
     }
 
