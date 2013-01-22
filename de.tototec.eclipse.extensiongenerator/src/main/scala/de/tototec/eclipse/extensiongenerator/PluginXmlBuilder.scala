@@ -41,10 +41,11 @@ class PluginXmlBuilder(
     val annoHandlers: Seq[AnnotationHandler] = Seq(
       new ApplicationAnnotationHandler(),
       new PerspectiveAnnotationHandler(),
-      new ViewAnnotationHandler()
+      new ViewAnnotationHandler(),
+      new EditorAnnotationHandler()
     )
 
-    var handleAnnoRequest: Seq[(AnnotationHandler, String, Annotation)] = Seq()
+    var handleAnnoRequest: Seq[(AnnotationHandler, ClassFile, Annotation)] = Seq()
 
     classFiles.foreach { file =>
       val is = new DataInputStream(new BufferedInputStream(new FileInputStream(file)))
@@ -68,7 +69,7 @@ class PluginXmlBuilder(
           handler <- annoHandlers;
           anno <- annos if handler.annotationName == anno.getTypeName
         ) {
-          handleAnnoRequest ++= Seq((handler, classFile.getName, anno))
+          handleAnnoRequest ++= Seq((handler, classFile, anno))
         }
 
       } finally {
@@ -78,7 +79,7 @@ class PluginXmlBuilder(
     }
 
     val xmlFragments = handleAnnoRequest.map {
-      case (handler, className, anno) => handler.generateXmlFragement(className, anno)
+      case (handler, classFile, anno) => handler.generateXmlFragement(classFile, anno)
     }
 
     val pluginXml = xmlFragments.mkString(
@@ -90,7 +91,7 @@ class PluginXmlBuilder(
       "\n</plugin>"
     )
 
-    pluginXml
+    pluginXml.split("\n").filter(line => line.trim.length > 0).mkString("\n")
   }
 
 }
