@@ -5,24 +5,11 @@ import java.io.DataInputStream
 import java.io.File
 import java.io.FileInputStream
 
-import scala.Array.canBuildFrom
 import scala.util.matching.Regex
 
-import de.tototec.eclipse.extensiongenerator.annotation.Application
-import de.tototec.eclipse.extensiongenerator.annotation.Cardinality
-import de.tototec.eclipse.extensiongenerator.annotation.Perspective
-import de.tototec.eclipse.extensiongenerator.annotation.Thread
-import de.tototec.eclipse.extensiongenerator.annotation.View
 import javassist.bytecode.AnnotationsAttribute
 import javassist.bytecode.ClassFile
 import javassist.bytecode.annotation.Annotation
-import javassist.bytecode.annotation.AnnotationMemberValue
-import javassist.bytecode.annotation.ArrayMemberValue
-import javassist.bytecode.annotation.BooleanMemberValue
-import javassist.bytecode.annotation.DoubleMemberValue
-import javassist.bytecode.annotation.EnumMemberValue
-import javassist.bytecode.annotation.MemberValue
-import javassist.bytecode.annotation.StringMemberValue
 
 class PluginXmlBuilder(
   scanDirs: Seq[File] = Seq(),
