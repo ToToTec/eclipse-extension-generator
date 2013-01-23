@@ -53,3 +53,26 @@ The generator needs the following dependencies on its classpath:
 The annotations in `de.tototec.eclipse.extensiongenerator.annotation` package have the class retention policy, which means they are retained in the class files but are not needed at runtime. So, at runtime you will not have to add them to the classpath. 
 
 Unfortunatelly, older and current (2.10.0) Scala compilers have a bug and those annotations end up effectively with runtime retention. Here is the ticket: [SI-4788](https://issues.scala-lang.org/browse/SI-4788). Vote for it or even better, fix it, if that is not acceptable for you.
+
+Downloads
+---------
+
+In its current state, there are no binary releases. After some stabilzation and the addition of some more extension points as annotations, Eclipse Extension Builder will be release to Maven Central repository.
+
+The Annotations:
+```xml
+<dependency>
+  <groupId>de.tototec</groupId>
+  <artifactId>de.tototec.eclipse.extensiongenerator.annotation</artifactId>
+  <version>${eegVersion}</version>
+</dependency>
+```
+
+The Generator:
+```xml
+<dependency>
+  <groupId>de.tototec</groupId>
+  <artifactId>de.tototec.eclipse.extensiongenerator</artifactId>
+  <version>${eegVersion}</version>
+</dependency>
+```
