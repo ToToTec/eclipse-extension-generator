@@ -45,6 +45,8 @@ AntEcho(file = Path("target/classes/plugin.xml"), message = pluginXml)
 Dependencies
 ------------
 
+The annotations are written in Java and have no dependencies besides an Java 5.
+
 The generator needs the following dependencies on its classpath:
 
 * Scala 2.10
@@ -57,7 +59,7 @@ Unfortunatelly, older and current (2.10.0) Scala compilers have a bug and those 
 Downloads
 ---------
 
-In its current state, there are no binary releases. After some stabilzation and the addition of some more extension points as annotations, Eclipse Extension Builder will be release to Maven Central repository.
+In its current state, there are no binary releases. After some stabilzation and the addition of some more extension points as annotations, Eclipse Extension Generator will be release to Maven Central repository.
 
 The Annotations:
 ```xml
